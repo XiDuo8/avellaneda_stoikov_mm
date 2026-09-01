@@ -2,12 +2,13 @@ import numpy as np
 
 from src.market import simulate_gbm, order_arrives
 from src.quoting import compute_quotes
+from src.plotting import plot_results
 
 
 def main():
     s0 = 100.0
-    mu = 0.0
-    sigma = 0.2
+    mu = 0
+    sigma = 2
     T = 1.0
     n_steps = 200
     gamma = 0.1
@@ -47,6 +48,8 @@ def main():
             cash[i + 1] += ask
 
         pnl[i + 1] = cash[i + 1] + q[i + 1] * prices[i + 1]
+
+    plot_results(prices, q, pnl, T)
 
 
 if __name__ == "__main__":
