@@ -25,6 +25,29 @@ def main():
     cash = np.zeros(n_steps + 1)
     pnl = np.zeros(n_steps + 1)
 
+    for i in range(n_steps):
+        t = i * dt
+        bid, ask = compute_quotes(prices[i], q[i], t, T, gamma, sigma, k)
+
+        delta_bid = prices[i] - bid
+        delta_ask = ask - prices[i]
+
+        bid_filled = order_arrives(delta_bid, A, k, dt, rng)
+        ask_filled = order_arrives(delta_ask, A, k, dt, rng)
+
+        q[i + 1] = q[i]
+        cash[i + 1] = cash[i]
+
+        if bid_filled:
+            q[i + 1] = q[i] + 1
+            cash[i + 1] = cash[i] - bid
+
+        if ask_filled:
+            q[i + 1] -=  1
+            cash[i + 1] += ask
+
+        pnl[i + 1] = cash[i + 1] + q[i + 1] * prices[i + 1]
+
 
 if __name__ == "__main__":
     main()
