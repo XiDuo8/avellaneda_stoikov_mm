@@ -48,10 +48,11 @@ def simulate_gbm(
 
     return prices
 
+
 def fill_intensity(
     delta: float,
     A: float,
-    k: float
+    k: float,
 ) -> float:
     """Computes the order arrival intensity at a given distance from mid.
 
@@ -62,41 +63,42 @@ def fill_intensity(
     Args:
         delta: Distance of the quote from the mid-price. Must be non-negative.
         A: Base arrival intensity at delta = 0.
-        k: Decay rate controlling how quickly intensity fall off with distance
+        k: Decay rate controlling how quickly intensity falls off with distance
             from mid.
 
     Returns:
-        The order rarival intensity (lambda) at the given delta.
+        The order arrival intensity (lambda) at the given delta.
     """
     intensity = A * np.exp(-k * delta)
 
     return intensity
 
+
 def order_arrives(
-        delta: float,
-        A: float,
-        k: float,
-        dt: float,
-        rng: np.random.Generator
+    delta: float,
+    A: float,
+    k: float,
+    dt: float,
+    rng: np.random.Generator,
 ) -> bool:
-    """Decides whether a market order arrives hits a quote
+    """Decides whether a market order arrives and hits a quote
 
-        Computes the fill probability as intensity * dt, then draws one uniform
-        random number from rng and checks whether it falls below that
-        probability.
+    Computes the fill probability as intensity * dt, then draws one uniform
+    random number from rng and checks whether it falls below that
+    probability.
 
-        Args:
-            delta: Distance of the quote from the mid-price. Must be non-negative.
-            A: Base arrival intensity at delta = 0.
-            k: Decay rate controlling how quickly intensity fall off with distance
-                from mid.
-            dt: Length of the discrete time slice being simulated.
-            rng: Shared random number generator; each call draws the next number
-                from its continuous stream.
-
-        Returns:
-            True if a market order. arrives and hits the quote during this time
-            slice, False otherwise.
+    Args:
+        delta: Distance of the quote from the mid-price. Must be non-negative.
+        A: Base arrival intensity at delta = 0.
+        k: Decay rate controlling how quickly intensity falls off with distance
+            from mid.
+        dt: Length of the discrete time slice being simulated.
+        rng: Shared random number generator; each call draws the next number
+            from its continuous stream.
+ 
+    Returns:
+        True if a market order arrives and hits the quote during this time
+        slice, False otherwise.
     """
     intensity = fill_intensity(delta, A, k)
     probability = intensity * dt
