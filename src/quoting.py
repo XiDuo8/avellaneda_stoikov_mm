@@ -100,3 +100,18 @@ def compute_quotes(
     width = total_width / 2
 
     return r - width, r + width
+
+def make_as_strategy(
+    gamma:float,
+    sigma: float,
+    k: float
+):
+    def strategy(
+        price: float,
+        q: float,
+        t: float,
+        T: float
+    ) -> tuple[float, float]:
+        return compute_quotes(price, q, t, T, gamma, sigma, k)
+
+    return strategy

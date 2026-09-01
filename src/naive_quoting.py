@@ -12,5 +12,17 @@ def naive_quotes(
         A tuple (bid, ask) of quoted prices, offset by delta on either side of
         mid.
     """
-
     return mid - delta, mid + delta
+
+def make_naive_strategy(
+    delta: float
+):
+    def strategy(
+        price: float,
+        q: float,
+        t: float,
+        T: float
+    ) -> tuple[float, float]:
+        return naive_quotes(price, delta)
+
+    return strategy
