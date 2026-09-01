@@ -32,7 +32,7 @@ def reservation_price(
 
     return r
 
-def optimatal_spread(
+def optimal_spread(
     t: float,
     T: float,
     gamma: float,
@@ -62,3 +62,41 @@ def optimatal_spread(
     width = gamma * sigma ** 2 * (T - t) + (2 / gamma) * np.log(1 + gamma / k)
 
     return width
+
+def compute_quotes(
+    s: float,
+    q: int,
+    t: float,
+    T: float,
+    gamma: float,
+    sigma: float,
+    k: float,
+) -> tuple[float, float]:
+    """Computes the bid and ask quotes from the AS reservation price and spread.
+
+    Calls reservation_price to get the inventory-adjusted fair price, then calls
+    optimal_spread to get the total spread width, and splits that width
+    symmetrically around the reservation price to produce a bid and an ask.
+
+    Args:
+        s: Current mid-price of the asset.
+        q: Current inventory held by the market maker (positive = long,
+            negative = short).
+        t: Current time.
+        T: Terminal time of the trading session. Must satisfy T >= t.
+        gamma: Risk aversion parameter. Must be positive.
+        sigma: Volatility coefficient, on the same time-unit convention as t and
+            T. Must be non-negative.
+        k: Decay rate controlling how quickly fill intensity falls off with
+            distance from mid (same k as in market.fill_intensity).
+
+    Returns:
+        A tuple (bid, ask) giving the market maker's quoted bid and ask prices
+        for this timestep.
+    """
+    r = reservation_price(s, q, t, T, gamma, sigma)
+
+    total_width = optimal_spread(t, T, gamma, sigma, k)
+    width = total_width / 2
+
+    return r - width, r + width
