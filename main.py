@@ -1,7 +1,8 @@
 import numpy as np
 
-from src.market import simulate_gbm, order_arrives
-from src.quoting import compute_quotes
+from src.quoting import make_as_strategy
+from src.naive_quoting import make_naive_strategy
+from src.simulation import run_simulation
 from src.plotting import plot_results
 
 
@@ -14,43 +15,17 @@ def main():
     gamma = 0.1
     k = 1.5
     A = 140.0
-    seed = 67
+    seed = 1
+    delta = (gamma * sigma ** 2 * T + (2 / gamma) * np.log(1 + gamma / k)) / 2
 
-    dt = T / n_steps
+    as_strategy = make_as_strategy(gamma, sigma, k)
+    naive_strategy = make_naive_strategy(delta)
 
-    rng = np.random.default_rng(seed)
+    as_prices, as_q, as_pnl = run_simulation(as_strategy, s0, mu, sigma, T, n_steps, A, k, seed)
+    naive_prices, naive_q, naive_pnl = run_simulation(naive_strategy, s0, mu, sigma, T, n_steps, A, k, seed)
 
-    prices = simulate_gbm(s0, mu, sigma, T, n_steps, seed)
-
-    q = np.zeros(n_steps + 1)
-    cash = np.zeros(n_steps + 1)
-    pnl = np.zeros(n_steps + 1)
-
-    for i in range(n_steps):
-        t = i * dt
-        bid, ask = compute_quotes(prices[i], q[i], t, T, gamma, sigma, k)
-
-        delta_bid = prices[i] - bid
-        delta_ask = ask - prices[i]
-
-        bid_filled = order_arrives(delta_bid, A, k, dt, rng)
-        ask_filled = order_arrives(delta_ask, A, k, dt, rng)
-
-        q[i + 1] = q[i]
-        cash[i + 1] = cash[i]
-
-        if bid_filled:
-            q[i + 1] = q[i] + 1
-            cash[i + 1] = cash[i] - bid
-
-        if ask_filled:
-            q[i + 1] -=  1
-            cash[i + 1] += ask
-
-        pnl[i + 1] = cash[i + 1] + q[i + 1] * prices[i + 1]
-
-    plot_results(prices, q, pnl, T)
-
+    plot_results(as_prices, as_q, as_pnl, T)
+    plot_results(naive_prices, naive_q, naive_pnl, T)
 
 if __name__ == "__main__":
     main()
