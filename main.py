@@ -15,7 +15,7 @@ def main():
     gamma = 0.1
     k = 1.5
     A = 140.0
-    seed = 69
+    seed = 0
     delta = (gamma * sigma ** 2 * T + (2 / gamma) * np.log(1 + gamma / k)) / 2
 
     as_strategy = make_as_strategy(gamma, sigma, k)
