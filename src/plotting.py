@@ -83,6 +83,7 @@ def plot_comparison(
 
     axes[2].plot(time, as_pnl, label="AS")
     axes[2].plot(time, naive_pnl, label="Naive")
+    axes[2].set_title("PnL Over Time")
     axes[2].set_ylabel("PnL")
     axes[2].set_xlabel("Time")
     axes[2].legend()

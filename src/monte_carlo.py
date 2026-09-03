@@ -10,11 +10,9 @@ class MonteCarloResults:
     """Aggregated results from running a strategy over many simulated paths.
 
     Args:
-        terminal_pnl (np.ndarray): Final PnL for each run, shape (n_runs,).
-        inventory_paths (np.ndarray): Inventory over time for each run,
-            shape (n_runs, n_steps + 1)
-        pnl_paths (np.ndarray): PnL over time for each run,
-            shape (n_runs, n_steps + 1).
+        terminal_pnl (np.ndarray): Final PnL for each run.
+        inventory_paths (np.ndarray): Inventory over time for each run.
+        pnl_paths (np.ndarray): PnL over time for each run.
     """
 
     terminal_pnl: np.ndarray
