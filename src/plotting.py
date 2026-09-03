@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+from src.monte_carlo import MonteCarloResults
+from src.analysis import find_representative_run
 
 def plot_results(
     prices: np.ndarray,
@@ -89,5 +91,64 @@ def plot_comparison(
     axes[2].set_xlabel("Time")
     axes[2].legend()
 
-    plt.tight_layout
+    plt.tight_layout()
+    plt.show()
+
+def plot_pnl_distribution(
+    as_results: MonteCarloResults,
+    naive_results: MonteCarloResults,
+) -> None:
+    """Plots overlaid termanal PnL distributions for AS and naive strategies.
+
+    Args:
+        as_results (MonteCarloResults): MonteCarlo results for the AS strategy.
+        naive_results (MonteCarloResults): Monte Carlo results for the naive
+            strategy.
+    """
+    sns.histplot(as_results.terminal_pnl, kde=True, label="AS", alpha=0.5)
+    sns.histplot(naive_results.terminal_pnl, kde=True, label="Naive", alpha=0.5)
+    plt.xlabel("Terminal PnL")
+    plt.ylabel("Frequency")
+    plt.title("Terminal PnL distribution: AS vs Naive")
+    plt.legend()
+    plt.show()
+
+def plot_representative_run(
+    as_results: MonteCarloResults,
+    naive_results: MonteCarloResults,
+    T: float,
+) -> None:
+    """Plots inventory and PnL paths for each's median-representative run.
+
+    Args:
+        as_results: Monte Carlo results for the AS strategy.
+        naive_results: Monte Carlo results for the naive strategy.
+    """
+    as_idx = find_representative_run(as_results)
+    naive_idx = find_representative_run(naive_results)
+
+    as_q = as_results.inventory_paths[as_idx]
+    as_pnl = as_results.pnl_paths[as_idx]
+
+    naive_q = naive_results.inventory_paths[naive_idx]
+    naive_pnl = naive_results.pnl_paths[naive_idx]
+
+    time = np.linspace(0, T, len(as_q))
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+
+    axes[0].plot(time, as_q, label="AS")
+    axes[0].plot(time, naive_q, label="Naive")
+    axes[0].set_title("Inventory Over Time")
+    axes[0].set_ylabel("Inventory (q)")
+    axes[0].legend()
+
+    axes[1].plot(time, as_pnl, label="AS")
+    axes[1].plot(time, naive_pnl, label="Naive")
+    axes[1].set_title("PnL Over Time")
+    axes[1].set_ylabel("PnL")
+    axes[1].set_xlabel("Time")
+    axes[1].legend()
+
+    plt.tight_layout()
     plt.show()
