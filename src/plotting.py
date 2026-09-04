@@ -94,6 +94,7 @@ def plot_comparison(
     plt.tight_layout()
     plt.show()
 
+
 def plot_pnl_distribution(
     as_results: MonteCarloResults,
     naive_results: MonteCarloResults,
@@ -149,6 +150,51 @@ def plot_representative_run(
     axes[1].set_ylabel("PnL")
     axes[1].set_xlabel("Time")
     axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_gamma_sweep(
+    sweep_results: list[dict[str, float]],
+) -> None:
+    """Plots the inventory-risk vs PnL tradeoff against a gamma sweep.
+
+    Produces a scatter plot with inventory variance on the x-axis and PnL mean
+    on the y-axis, one point per gamma value. Point size encodes PnL variance,
+    and each point is annotated with its gamma value, so the plot shows how
+    increasing risk-aversion (gamma) trades inventory risk against both the
+    level and variability of PnL.
+
+    Args:
+        sweep_results: List of dicts as returned by sweep_gamma, each
+            containing "gamma", "inventory_variance", "pnl_mean", and
+            "pnl_variance".
+
+    Returns:
+        None. Displays the figure via plt.show().
+    """
+    gammas = [r["gamma"] for r in sweep_results]
+    inventory_variance = [r["inventory_variance"] for r in sweep_results]
+    pnl_mean = [r["pnl_mean"] for r in sweep_results]
+    pnl_variance = [r["pnl_variance"] for r in sweep_results]
+
+    max_pnl_variance = max(pnl_variance)
+    point_sizes = [20 + 180 * (v / max_pnl_variance) for v in pnl_variance]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    ax.scatter(inventory_variance, pnl_mean, s=point_sizes)
+
+    for gamma, x, y in zip(gammas, inventory_variance, pnl_mean):
+        ax.annotate(f"γ={gamma}",
+            (x, y),
+            textcoords="offset points",
+            xytext=(8, 4),
+        )
+
+    ax.set_xlabel("Inventory Variance")
+    ax.set_ylabel("PnL Mean")
+    ax.set_title("Gamma Sweep: Inventory Risk vs PnL Tradeoff")
 
     plt.tight_layout()
     plt.show()
