@@ -34,11 +34,11 @@ def simulate_gbm(
     prices = np.zeros(config.n_steps + 1)
     prices[0] = config.s0
 
-    for i in range(1, config.n_steps + 1):
-        z = rng.standard_normal()
-        prices[i] = prices[i - 1] * np.exp(
-            (config.mu - 0.5 * config.sigma**2) * dt + config.sigma * np.sqrt(dt) * z
-        )
+    z = rng.standard_normal(config.n_steps)
+    drift = (config.mu - 0.5 * config.sigma**2) * dt
+    diffusion = config.sigma * np.sqrt(dt) * z
+    returns = np.exp(drift + diffusion)
+    prices[1:] = prices[0] * np.cumprod(returns)
 
     return prices
 

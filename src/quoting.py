@@ -54,7 +54,9 @@ def optimal_spread(
     Returns:
         The total optimal spread width (delta_a + delta_b).
     """
-    width = gamma * config.sigma ** 2 * (config.T - t) + (2 / gamma) * np.log(1 + gamma / config.k)
+    risk = gamma * config.sigma**2 * (config.T - t)
+    liquidity = (2 / gamma) * np.log(1 + gamma / config.k)
+    width = risk + liquidity
 
     return width
 
