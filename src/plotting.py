@@ -187,7 +187,7 @@ def plot_gamma_sweep(
     max_pnl_variance = max(pnl_variance)
     point_sizes = [20 + 180 * (v / max_pnl_variance) for v in pnl_variance]
 
-    _   , ax = plt.subplots(figsize=(8, 6))
+    _, ax = plt.subplots(figsize=(8, 6))
 
     ax.scatter(inventory_variance, pnl_mean, s=point_sizes)
 

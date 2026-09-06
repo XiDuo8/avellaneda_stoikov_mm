@@ -59,12 +59,7 @@ def sweep_gamma(
     for gamma in gammas:
         as_quote_fn = make_as_strategy(gamma, config)
 
-        results = single_monte_carlo(
-            as_quote_fn,
-            config,
-            n_runs,
-            base_seed,
-        )
+        results = single_monte_carlo(as_quote_fn, config, n_runs, base_seed)
 
         summary = summarise_run(results)
         sweep_results.append({**summary, "gamma": gamma})
