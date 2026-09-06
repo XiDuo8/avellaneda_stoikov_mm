@@ -1,3 +1,5 @@
+"""Summary statistics and siagnostics for Monte Carlo results."""
+
 import numpy as np
 
 from src.monte_carlo import MonteCarloResults
@@ -18,6 +20,7 @@ def sharpe_ratio(
     std = np.std(terminal_pnl, ddof=1)
 
     return mean / std
+
 
 def find_representative_run(
     results: MonteCarloResults,

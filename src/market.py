@@ -1,11 +1,11 @@
+"""GBM price simulation and Poisson-intensity order arrival dynamics."""
+
 import numpy as np
 
+from src.config import SimulationConfig
+
 def simulate_gbm(
-    s0: float,
-    mu: float,
-    sigma: float,
-    T: float,
-    n_steps: int,
+    config: SimulationConfig,
     seed: int | None = None,
 ) -> np.ndarray:
     """Simulates a single geometric Brownian motion (GBM) price path.
@@ -19,13 +19,7 @@ def simulate_gbm(
     where Z is a standard normal random variable.
 
     Args:
-        s0: Initial asset price at time 0. Must be positive.
-        mu: Drift coefficient (annualised expected rate of return).
-        sigma: Volatility coefficient (annualised standard deviation of
-            returns). Must be non-negative.
-        T: Total time horizon over which to simulate.
-        n_steps: Number of discrete time steps to divide the horizon into. Must
-            be a positive integer.
+        config: Simulation parameters (s0, mu, sigma, T, n_steps).
         seed: Optional seed for the random number generator, used to make the
             simulation reproducible. If None, a non-deterministic seed is used.
 
@@ -35,15 +29,15 @@ def simulate_gbm(
         the simulated price at time i * (T/n_steps).
     """
     rng = np.random.default_rng(seed)
-    dt = T / n_steps
+    dt = config.T / config.n_steps
 
-    prices = np.zeros(n_steps + 1)
-    prices[0] = s0
+    prices = np.zeros(config.n_steps + 1)
+    prices[0] = config.s0
 
-    for i in range(1, n_steps + 1):
+    for i in range(1, config.n_steps + 1):
         z = rng.standard_normal()
         prices[i] = prices[i - 1] * np.exp(
-            (mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * z
+            (config.mu - 0.5 * config.sigma**2) * dt + config.sigma * np.sqrt(dt) * z
         )
 
     return prices
@@ -95,7 +89,7 @@ def order_arrives(
         dt: Length of the discrete time slice being simulated.
         rng: Shared random number generator; each call draws the next number
             from its continuous stream.
- 
+
     Returns:
         True if a market order arrives and hits the quote during this time
         slice, False otherwise.

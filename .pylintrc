@@ -1,0 +1,7 @@
+[BASIC]
+# Allow short, uppercase single-letter names that match the mathematical
+# notation from Avellaneda & Stoikov (2008): T (terminal time) and A (base
+# fill-intensity rate). Matching the paper's symbols is more readable to the
+# target audience (quants/researchs) than verbose alternatives, so these are
+# intentionally exempt from snake_case naming convention.
+good-names=T, A, k, q, s, dt

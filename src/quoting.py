@@ -1,12 +1,15 @@
+"""Avellaneda-Stoikov reservation price, optimal spread, and quoting."""
+
 import numpy as np
+
+from src.config import SimulationConfig
 
 def reservation_price(
     s: float,
-    q: int,
+    q: float,
     t: float,
-    T: float,
     gamma: float,
-    sigma: float,
+    config: SimulationConfig
 ) -> float:
     """Computes the Avellaneda-Stoikov reservation price.
 
@@ -20,24 +23,20 @@ def reservation_price(
         q: Current inventory held by the market maker (positive = long,
             negative = short).
         t: Current time.
-        T: Terminal time of the trading session. Must satisfy T>=t.
         gamma: Risk aversion parameter. Must be positive.
-        sigma: Volatility coefficient, on the same time-unit convention as t
-            and T. Must be non-negative.
+        config: Simulation parameters (s0, mu, sigma, T, n_steps).
 
     Returns:
         The reservation price r(s, q, t).
     """
-    r = s - q * gamma * sigma ** 2 * (T - t)
+    r = s - q * gamma * config.sigma ** 2 * (config.T - t)
 
     return r
 
 def optimal_spread(
     t: float,
-    T: float,
     gamma: float,
-    sigma: float,
-    k: float,
+    config: SimulationConfig
 ) -> float:
     """Computes the Avellaneda-Stoikov optimal total spread.
 
@@ -49,28 +48,22 @@ def optimal_spread(
 
     Args:
         t: Current time.
-        T: Terminal time of the trading session. Must satisfy T >= t.
         gamma: Risk aversion parameter. Must be positive.
-        sigma: Volatility coefficient, on the same time-unit convention as t and
-            T. Must be non-negative.
-        k: Decay rate controlling how quickly fill intensity falls off with
-            distance from mid (same k as in market.fill_intensity).
+        config: Simulation parameters (s0, mu, sigma, T, n_steps).
 
     Returns:
         The total optimal spread width (delta_a + delta_b).
     """
-    width = gamma * sigma ** 2 * (T - t) + (2 / gamma) * np.log(1 + gamma / k)
+    width = gamma * config.sigma ** 2 * (config.T - t) + (2 / gamma) * np.log(1 + gamma / config.k)
 
     return width
 
 def compute_quotes(
     s: float,
-    q: int,
+    q: float,
     t: float,
-    T: float,
     gamma: float,
-    sigma: float,
-    k: float,
+    config: SimulationConfig
 ) -> tuple[float, float]:
     """Computes the bid and ask quotes from the AS reservation price and spread.
 
@@ -83,35 +76,41 @@ def compute_quotes(
         q: Current inventory held by the market maker (positive = long,
             negative = short).
         t: Current time.
-        T: Terminal time of the trading session. Must satisfy T >= t.
         gamma: Risk aversion parameter. Must be positive.
-        sigma: Volatility coefficient, on the same time-unit convention as t and
-            T. Must be non-negative.
-        k: Decay rate controlling how quickly fill intensity falls off with
-            distance from mid (same k as in market.fill_intensity).
+        config: Simulation parameters (s0, mu, sigma, T, n_steps).
 
     Returns:
         A tuple (bid, ask) giving the market maker's quoted bid and ask prices
         for this timestep.
     """
-    r = reservation_price(s, q, t, T, gamma, sigma)
+    r = reservation_price(s, q, t, gamma, config)
 
-    total_width = optimal_spread(t, T, gamma, sigma, k)
+    total_width = optimal_spread(t, gamma, config)
     width = total_width / 2
 
     return r - width, r + width
 
 def make_as_strategy(
-    gamma:float,
-    sigma: float,
-    k: float
+    gamma: float,
+    config: SimulationConfig
 ):
+    """Builds a quote_fn closure implementing the AS strategy.
+
+    Args:
+        gamma: Risk aversion parameter. Must be positive.
+        config: Simulation parameters (s0, mu, sigma, T, n_steps).
+
+    Returns:
+        A callable strategy(price, q, t, T) -> (bid, ask), suitable for passing
+            to run_simulation.
+
+    """
     def strategy(
         price: float,
         q: float,
         t: float,
-        T: float
+        T: float    # pylint: disable=unused-argument
     ) -> tuple[float, float]:
-        return compute_quotes(price, q, t, T, gamma, sigma, k)
+        return compute_quotes(price, q, t, gamma, config)
 
     return strategy

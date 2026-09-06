@@ -1,5 +1,8 @@
+"""Gamma sensitivity sweep for the AS strategy's inventory-risk/PnL tradeoff."""
+
 import numpy as np
 
+from src.config import SimulationConfig
 from src.monte_carlo import MonteCarloResults, single_monte_carlo
 from src.quoting import make_as_strategy
 
@@ -31,13 +34,7 @@ def summarise_run(
 
 def sweep_gamma(
     gammas: list[float],
-    s0: float,
-    mu: float,
-    sigma: float,
-    T: float,
-    n_steps: int,
-    A: float,
-    k: float,
+    config: SimulationConfig,
     n_runs: int,
     base_seed: int = 0,
 ) -> list[dict[str, float]]:
@@ -49,13 +46,7 @@ def sweep_gamma(
 
     Args:
         gammas: Risk-aversion values to sweep over.
-        s0: Initial price.
-        mu: Drift.
-        sigma: Volatility.
-        T: Time horizon.
-        n_steps: Number of simulation steps.
-        A: Fill intensity base rate.
-        k: Fill intensity decay rate.
+        config: Simulation parameters (s0, mu, sigma, T, n_steps).
         n_runs: Number of Monte Carlo paths per gamma value.
         base_seed: Seed offset, forwarded unchanged for every gamma value.
 
@@ -66,17 +57,11 @@ def sweep_gamma(
     sweep_results = []
 
     for gamma in gammas:
-        as_quote_fn = make_as_strategy(gamma, sigma, k)
+        as_quote_fn = make_as_strategy(gamma, config)
 
         results = single_monte_carlo(
             as_quote_fn,
-            s0,
-            mu,
-            sigma,
-            T,
-            n_steps,
-            A,
-            k,
+            config,
             n_runs,
             base_seed,
         )

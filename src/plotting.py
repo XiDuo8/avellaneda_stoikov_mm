@@ -1,9 +1,12 @@
+"""Visualisation helpers for single-run and Monte Carlo simulation results."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 from src.monte_carlo import MonteCarloResults
 from src.analysis import find_representative_run
+
 
 def plot_results(
     prices: np.ndarray,
@@ -28,7 +31,7 @@ def plot_results(
     """
     time = np.linspace(0, T, len(prices))
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+    _, axes = plt.subplots(3, 1, figsize=(10, 8))
 
     axes[0].plot(time, prices)
     axes[0].set_title("Mid-Price Path")
@@ -45,6 +48,7 @@ def plot_results(
 
     plt.tight_layout()
     plt.show()
+
 
 def plot_comparison(
     as_results: tuple[np.ndarray, np.ndarray, np.ndarray],
@@ -68,11 +72,11 @@ def plot_comparison(
         None. Displays the figure via plt.show().
     """
     as_prices, as_q, as_pnl = as_results
-    naive_prices, naive_q, naive_pnl = naive_results
+    _, naive_q, naive_pnl = naive_results
 
     time = np.linspace(0, T, len(as_prices))
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+    _, axes = plt.subplots(3, 1, figsize=(10, 8))
 
     axes[0].plot(time, as_prices)
     axes[0].set_title("Mid-Price Path")
@@ -114,6 +118,7 @@ def plot_pnl_distribution(
     plt.legend()
     plt.show()
 
+
 def plot_representative_run(
     as_results: MonteCarloResults,
     naive_results: MonteCarloResults,
@@ -136,7 +141,7 @@ def plot_representative_run(
 
     time = np.linspace(0, T, len(as_q))
 
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    _, axes = plt.subplots(2, 1, figsize=(10, 8))
 
     axes[0].plot(time, as_q, label="AS")
     axes[0].plot(time, naive_q, label="Naive")
@@ -153,6 +158,7 @@ def plot_representative_run(
 
     plt.tight_layout()
     plt.show()
+
 
 def plot_gamma_sweep(
     sweep_results: list[dict[str, float]],
@@ -181,7 +187,7 @@ def plot_gamma_sweep(
     max_pnl_variance = max(pnl_variance)
     point_sizes = [20 + 180 * (v / max_pnl_variance) for v in pnl_variance]
 
-    fig, ax = plt.subplots(figsize=(8, 6))
+    _   , ax = plt.subplots(figsize=(8, 6))
 
     ax.scatter(inventory_variance, pnl_mean, s=point_sizes)
 
