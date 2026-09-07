@@ -7,6 +7,7 @@ from src.config import SimulationConfig
 
 @pytest.fixture
 def config() -> SimulationConfig:
+    """A standard SimulationConfig used across most tests."""
     return SimulationConfig(
         s0=100.0,
         mu=0.1,
