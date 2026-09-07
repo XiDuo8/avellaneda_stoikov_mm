@@ -20,14 +20,14 @@ def test_reservation_price_known_value(config):
 
 
 def test_reservation_price_shifts_down_when_long(config):
-    """Positive inventory (long) should shift the reservation price below mid."""
+    """Positive inventory should shift the reservation price below mid."""
     r = reservation_price(s=100.0, q=5.0, t=0.5, gamma=1.0, config=config)
 
     assert r < 100.0
 
 
 def test_reservation_price_shifts_up_when_short(config):
-    """Negative inventory (short) should shift the reservation price above mid."""
+    """Negative inventory should shift the reservation price above mid."""
     r = reservation_price(s=100.0, q=-5.0, t=0.5, gamma=1.0, config=config)
 
     assert r > 100.0
@@ -41,7 +41,7 @@ def test_optimal_spread_known_value(config):
 
 
 def test_optimal_spread_shrinks_as_time_runs_out(config):
-    """Spread should narrow as t approaches T (less inventory risk remaining)."""
+    """Spread should narrow as t approaches T."""
     early_width = optimal_spread(t=0.1, gamma=1.0, config=config)
     late_width = optimal_spread(t=0.9, gamma=1.0, config=config)
 
@@ -71,7 +71,7 @@ def test_compute_quotes_known_values(config):
 
 
 def test_compute_quotes_midpoint_equals_reservation_price(config):
-    """The bid/ask midpoint should equal the reservation price, by construction."""
+    """The bid/ask midpoint should equal the reservation price."""
     s, q, t, gamma = 100.0, 3.0, 0.4, 1.5
 
     bid, ask = compute_quotes(s, q, t, gamma, config)
@@ -81,7 +81,7 @@ def test_compute_quotes_midpoint_equals_reservation_price(config):
 
 
 def test_compute_quotes_width_equals_optimal_spread(config):
-    """The bid/ask width should equal optimal_spread's total width, by construction."""
+    """The bid/ask width should equal optimal_spread's total width."""
     s, q, t, gamma = 100.0, 3.0, 0.4, 1.5
 
     bid, ask = compute_quotes(s, q, t, gamma, config)

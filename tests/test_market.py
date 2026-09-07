@@ -87,10 +87,13 @@ def test_fill_intensity_never_negative(config):
 
 
 def test_order_arrives_never_fires_with_zero_intensity():
-    """With A=0, the fill probability is always zero, so no order should arrive."""
+    """With A=0, fill probability is always zero, so no order should arrive."""
     rng = np.random.default_rng(0)
 
-    results = [order_arrives(delta=0.5, A=0.0, k=1.5, dt=0.01, rng=rng) for _ in range(100)]
+    results = [
+        order_arrives(delta=0.5, A=0.0, k=1.5, dt=0.01, rng=rng)
+        for _ in range(100)
+    ]
 
     assert not any(results)
 
@@ -99,8 +102,10 @@ def test_order_arrives_always_fires_with_high_probability():
     """When intensity * dt exceeds 1, the order should always arrive."""
     rng = np.random.default_rng(0)
 
-    # delta=0 maximises intensity; large A and dt push probability past 1.
-    results = [order_arrives(delta=0.0, A=1000.0, k=1.5, dt=1.0, rng=rng) for _ in range(50)]
+    results = [
+        order_arrives(delta=0.0, A=1000.0, k=1.5, dt=1.0, rng=rng)
+        for _ in range(50)
+    ]
 
     assert all(results)
 
