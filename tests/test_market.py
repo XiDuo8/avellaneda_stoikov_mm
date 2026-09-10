@@ -64,7 +64,7 @@ def test_fill_intensity_at_zero_delta_equals_a(config):
     assert intensity == config.A
 
 
-def test_fill_intensity_known_value(config):
+def test_fill_intensity_known_value():
     """Fill intensity matches the closed-form exponential decay formula."""
     intensity = fill_intensity(delta=1.0, A=140.0, k=1.5)
 

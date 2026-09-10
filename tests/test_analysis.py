@@ -28,6 +28,7 @@ def test_sharpe_ratio_uses_sample_std_ddof_1():
 
 
 def test_sharpe_ratio_negative_mean_gives_negative_sharpe():
+    """Sharpe ratio should be negative when mean PnL is negative."""
     terminal_pnl = np.array([-10.0, -20.0, -5.0])
 
     result = sharpe_ratio(terminal_pnl)

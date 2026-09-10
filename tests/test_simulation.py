@@ -97,7 +97,7 @@ def test_run_simulation_works_with_naive_strategy(config):
     """The simulation loop should run equally well with the naive strategy."""
     strategy = make_naive_strategy(delta=0.1)
 
-    prices, q, pnl = run_simulation(strategy, config, seed=0)
+    prices, _, pnl = run_simulation(strategy, config, seed=0)
 
     assert len(prices) == config.n_steps + 1
     assert np.all(np.isfinite(pnl))
