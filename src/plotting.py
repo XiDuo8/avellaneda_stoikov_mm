@@ -66,7 +66,7 @@ def plot_comparison(
             strategy.
         naive_results: Tuple (prices, q, pnl) from run_simulation for the naive
             fixed-spread strategy.
-        T: Termainl time of the trading session.
+        T: Terminal time of the trading session.
 
     Returns:
         None. Displays the figure via plt.show().

@@ -79,7 +79,7 @@ that mean profit away in exchange for a reduction in inventory variance and PnL
 variance. The net effect on risk-adjusted return (Sharpe ratio) favours the AS
 strategy over the naive strategy.
 
-![Terminal PnL distribution: AS vs Naive](assets/gamma_sweep.png)
+![Terminal PnL distribution: AS vs Naive](assets/pnl_distribution.png)
 
 The naive strategy's PnL distribution is visibly wider and long-tailed; the AS
 distribution is tighter around its mean, which is the direct consequence of
@@ -87,7 +87,7 @@ actively managing inventory rather than letting it drift.
 
 ### A representative single run
 
-![Inventory and PnL over a representative run, AS vs Naive](assets/pnl_distribution.png)
+![Inventory and PnL over a representative run, AS vs Naive](assets/representative_run.png)
 
 Picking the run closest to each strategy's median outcome makes the mechanism
 visible directly: the AS strategy's inventory mean-reverts toward zero
@@ -98,7 +98,7 @@ its unmanaged inventory rides the price.
 
 ### The γ sweep: risk aversion trades off against expected profit
 
-![Gamma sweep: inventory variance vs mean PnL trade-off](assets/representative_run.png)
+![Gamma sweep: inventory variance vs mean PnL trade-off](assets/gamma_sweep.png)
 
 Sweeping γ from 0.01 (near risk-neutral) to 5 (highly risk-averse) traces out
 the trade-off directly, higher γ monotonically reduces both inventory variance

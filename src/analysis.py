@@ -1,4 +1,4 @@
-"""Summary statistics and siagnostics for Monte Carlo results."""
+"""Summary statistics and diagnostics for Monte Carlo results."""
 
 import numpy as np
 

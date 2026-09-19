@@ -1,4 +1,4 @@
-"""Avellaneda-Stoikov reservation price, optimal spread, and quoting."""
+"""Avellaneda-Stoikov (AS) reservation price, optimal spread, and quoting."""
 
 import numpy as np
 
@@ -11,12 +11,12 @@ def reservation_price(
     gamma: float,
     config: SimulationConfig
 ) -> float:
-    """Computes the Avellaneda-Stoikov reservation price.
+    """Computes the AS reservation price.
 
     Implements r(s, q, t) = s - q * gamma * sigma^2 * (T - t), the inventory
-    adjusted fair price from Avellaneda-Stoikov (2008): it shifts below the mid
-    price when the market maker is long inventory and above it when short,
-    proportional to the variance remaining over the trading horizon.
+    adjusted fair price. The reservation price shifts below the mid price when
+    the market maker is long inventory and above it when short, proportional to
+    the variance remaining over the trading horizon.
 
     Args:
         s: Current mid-price of the asset.
@@ -38,13 +38,13 @@ def optimal_spread(
     gamma: float,
     config: SimulationConfig
 ) -> float:
-    """Computes the Avellaneda-Stoikov optimal total spread.
+    """Computes the AS optimal total spread.
 
     Implements delta_a + delta_b = gamma * sigma^2 * (T-t) + (2 / gamma) *
-    ln(1 + gamma / k), the total quoted spread width from Avellaneda-Stoikov
-    (2008). The spread widens with more time remaining or higher volatility
-    (greater inventory risk to be compensated for), and is shaped by risk
-    aversion and the fill-decay rate k from the order arrival model.
+    ln(1 + gamma / k), the total quoted spread width. The spread widens with
+    more time remaining or higher volatility (greater inventory risk to be
+    compensated for), and is shaped by risk aversion and the fill-decay rate k
+    from the order arrival model.
 
     Args:
         t: Current time.
