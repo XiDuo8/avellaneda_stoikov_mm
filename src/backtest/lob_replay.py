@@ -30,6 +30,28 @@ class LOBReplayEngine:
             "ask": None,
         }
 
+    def place_synthetic_order(
+        self, side: str, price: float, size: float, timestamp: float
+    ) -> None:
+        """Places a synthetic resting order on the given side at price,
+        computing volume_ahead from the real queue's current depth.
+        """
+        assert self._synthetic_orders[side] is None, (
+            f"Synthetic order already resting on {side}; cancel it first."
+        )
+
+        queue = self._queues[side].get(price)
+        volume_ahead = sum(order.size for order in queue) if queue else 0.0
+
+        self._synthetic_orders[side] = SyntheticOrder(
+            side=side,
+            price=price,
+            size=size,
+            volume_ahead=volume_ahead,
+            placed_at=timestamp,
+        )
+
+
     def process_message_event(self, event):
         """Processes one LOBSTER message row, updating real queues checking
         whether a resting synthetic order fills.
