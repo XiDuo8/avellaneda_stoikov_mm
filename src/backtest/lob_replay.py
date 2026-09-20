@@ -1,5 +1,3 @@
-import pandas as pd
-
 from collections import deque
 from dataclasses import dataclass
 
@@ -18,13 +16,6 @@ class SyntheticOrder:
     size: float
     volume_ahead: float
     placed_at: float
-
-def load_messages(path: str) -> pd.DataFrame:
-    """Loads a LOBSTER message file and rescales price to dollars."""
-    columns = ["time", "event_type", "order_id", "size", "price", "direction"]
-    messages = pd.read_csv(path, names=columns)
-    messages["price"] = messages["price"] / 10000
-    return messages
 
 class LOBReplayEngine:
     """Reconstructs a LOBSTER order book's evolution and tracks fills against
