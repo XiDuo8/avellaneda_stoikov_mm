@@ -51,6 +51,12 @@ class LOBReplayEngine:
             placed_at=timestamp,
         )
 
+    def cancel_synthetic_order(self, side: str) -> SyntheticOrder | None:
+        """Cancels the synthetic order resting on the given side, if any."""
+        existing = self._synthetic_orders[side]
+        self._synthetic_orders[side] = None
+        return existing
+
 
     def process_message_event(self, event):
         """Processes one LOBSTER message row, updating real queues checking
