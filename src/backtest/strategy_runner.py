@@ -10,7 +10,7 @@ def run_backtest(
     orderbook: pd.DataFrame,
     quote_size: float,
     tick_size: float = 0.01,
-) -> tuple[np.ndarray. np.ndarray. np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs a full backtest of quote_fn against LOB data."""
     assert len(messages) == len(orderbook), (
         "messages/orderbook row count mismatch -- are these row-aligned files "
@@ -31,7 +31,7 @@ def run_backtest(
     q_current = 0.0
     cash_current = 0.0
 
-    for i, (msg_row, ob_row) in enumerate(zip(messages.itertuples(), orderbook.itertuples)):
+    for i, (msg_row, ob_row) in enumerate(zip(messages.itertuples(), orderbook.itertuples())):
         fill_amount = engine.process_message_event(msg_row)
 
         if fill_amount is not None:
