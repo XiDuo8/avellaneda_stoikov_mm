@@ -20,3 +20,15 @@ def summarise_backtest(
         "max_abs_inventory": np.abs(q).max(),
         "n_fills": int(np.sum(np.diff(q) != 0)),
     }
+
+
+def compare_strategies(
+    as_result: tuple[np.ndarray, np.ndarray, np.ndarray],
+    naive_result: tuple[np.ndarray, np.ndarray, np.ndarray],
+) -> dict[str, dict[str, float]]:
+    """Summarises AS and naive results from backtest."""
+    return {
+        "as": summarise_backtest(*as_result),
+        "naive": summarise_backtest(*naive_result),
+    }
+
