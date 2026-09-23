@@ -32,3 +32,9 @@ def compare_strategies(
         "naive": summarise_backtest(*naive_result),
     }
 
+
+def pnl_percentile_vs_monte_carlo(
+    backtest_final_pnl: float,
+    mc_results: MonteCarloResults,
+) -> float:
+    return 100 * np.mean(mc_results.terminal_pnl <= backtest_final_pnl)
