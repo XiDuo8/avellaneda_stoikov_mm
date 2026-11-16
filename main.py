@@ -3,6 +3,7 @@
 import numpy as np
 
 from src.analysis import find_shared_representative_run, sharpe_ratio
+from src.backtest.run_backtest_comparison import run_lob_backtest
 from src.config import SimulationConfig
 from src.market import simulate_gbm
 from src.monte_carlo import run_monte_carlo
@@ -10,6 +11,7 @@ from src.naive_quoting import make_naive_strategy
 from src.plotting import (
     plot_representative_run,
     plot_pnl_distribution,
+    plot_inventory_distribution,
     plot_gamma_sweep,
 )
 from src.quoting import make_as_strategy
@@ -22,13 +24,14 @@ def main():
     """Runs the AS vs naive Monte Carlo comparison and gamma sweep.
 
     Prints the Sharpe ratio for each strategy, then displays the terminal
-    PnL distribution, a representative run, and the gamma sweep risk/return
-    tradeoff plots. Each figure is also saved to assets/graphs.
+    PnL and inventory distributions, a representative run, and the gamma
+    sweep risk/return tradeoff plots. Each figure is also saved to
+    assets/graphs.
     """
     config = SimulationConfig(
         s0=100.0,
-        mu=0.15,
-        sigma=0.5,
+        mu=0.0,
+        sigma=0.005,
         T=1.0,
         n_steps=1000,
         A=150.0,
@@ -36,7 +39,7 @@ def main():
     )
     gamma = 2
     n_runs = 1000
-    variance = gamma * config.sigma**2 * config.T
+    variance = gamma * config.dollar_sigma**2 * config.T
     liquidity = (2 / gamma) * np.log(1 + gamma / config.k)
     delta = 0.5 * (variance + liquidity)
 
@@ -83,6 +86,9 @@ def main():
     plot_pnl_distribution(
         as_results, naive_results, f"{GRAPH_DIR}/pnl_distribution.png"
     )
+    plot_inventory_distribution(
+        as_results, naive_results, f"{GRAPH_DIR}/inventory_distribution.png"
+    )
     plot_representative_run(
         prices, as_results, naive_results, run_idx, config.T,
         f"{GRAPH_DIR}/representative_run.png",
@@ -92,3 +98,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    run_lob_backtest()
