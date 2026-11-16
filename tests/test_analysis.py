@@ -4,7 +4,11 @@ import math
 
 import numpy as np
 
-from src.analysis import find_representative_run, sharpe_ratio
+from src.analysis import (
+    find_representative_run,
+    find_shared_representative_run,
+    sharpe_ratio,
+)
 from src.monte_carlo import MonteCarloResults
 
 
@@ -88,3 +92,58 @@ def test_find_representative_run_returns_valid_index():
     idx = find_representative_run(results)
 
     assert 0 <= idx < n_runs
+
+
+def _results(terminal_pnl: list[float]) -> MonteCarloResults:
+    """Builds MonteCarloResults with the given terminal PnL and empty paths."""
+    n_runs = len(terminal_pnl)
+
+    return MonteCarloResults(
+        terminal_pnl=np.array(terminal_pnl),
+        inventory_paths=np.zeros((n_runs, 3)),
+        pnl_paths=np.zeros((n_runs, 3)),
+    )
+
+
+def test_find_shared_representative_run_known_value():
+    """Picks the run with the smallest combined standardised distance."""
+    as_results = _results([10.0, 20.0, 30.0, 40.0, 50.0])
+    naive_results = _results([0.0, 100.0, 900.0, 110.0, 200.0])
+
+    idx = find_shared_representative_run(as_results, naive_results)
+
+    assert idx == 3
+
+
+def test_find_shared_representative_run_differs_from_single_strategy():
+    """The shared run need not be the AS strategy's own median run."""
+    as_results = _results([10.0, 20.0, 30.0, 40.0, 50.0])
+    naive_results = _results([0.0, 100.0, 900.0, 110.0, 200.0])
+
+    shared_idx = find_shared_representative_run(as_results, naive_results)
+    as_idx = find_representative_run(as_results)
+
+    assert as_idx == 2
+    assert shared_idx != as_idx
+
+
+def test_find_shared_representative_run_is_scale_invariant():
+    """Rescaling one strategy's PnL should not change the chosen run."""
+    as_results = _results([10.0, 20.0, 30.0, 40.0, 50.0])
+    naive_results = _results([0.0, 100.0, 900.0, 110.0, 200.0])
+    scaled_naive = _results([0.0, 1e5, 9e5, 1.1e5, 2e5])
+
+    idx = find_shared_representative_run(as_results, naive_results)
+    scaled_idx = find_shared_representative_run(as_results, scaled_naive)
+
+    assert scaled_idx == idx
+
+
+def test_find_shared_representative_run_same_median_run():
+    """If one run is the median for both strategies, it should be chosen."""
+    as_results = _results([0.0, 50.0, 55.0, 100.0, 200.0])
+    naive_results = _results([-900.0, 500.0, 10.0, 0.0, 900.0])
+
+    idx = find_shared_representative_run(as_results, naive_results)
+
+    assert idx == 2
