@@ -2,8 +2,9 @@
 
 import numpy as np
 
-from src.analysis import sharpe_ratio
+from src.analysis import find_shared_representative_run, sharpe_ratio
 from src.config import SimulationConfig
+from src.market import simulate_gbm
 from src.monte_carlo import run_monte_carlo
 from src.naive_quoting import make_naive_strategy
 from src.plotting import (
@@ -14,12 +15,15 @@ from src.plotting import (
 from src.quoting import make_as_strategy
 from src.sweep import summarise_run, sweep_gamma
 
+GRAPH_DIR = "assets/graphs"
+
 
 def main():
     """Runs the AS vs naive Monte Carlo comparison and gamma sweep.
 
     Prints the Sharpe ratio for each strategy, then displays the terminal
-    PnL distribution and the gamma sweep risk/return tradeof plots.
+    PnL distribution, a representative run, and the gamma sweep risk/return
+    tradeoff plots. Each figure is also saved to assets/graphs.
     """
     config = SimulationConfig(
         s0=100.0,
@@ -73,9 +77,17 @@ def main():
 
     sweep_results = sweep_gamma(sweep_gammas, config, n_runs)
 
-    plot_pnl_distribution(as_results, naive_results)
-    plot_representative_run(as_results, naive_results, config.T)
-    plot_gamma_sweep(sweep_results)
+    run_idx = find_shared_representative_run(as_results, naive_results)
+    prices = simulate_gbm(config, seed=run_idx)
+
+    plot_pnl_distribution(
+        as_results, naive_results, f"{GRAPH_DIR}/pnl_distribution.png"
+    )
+    plot_representative_run(
+        prices, as_results, naive_results, run_idx, config.T,
+        f"{GRAPH_DIR}/representative_run.png",
+    )
+    plot_gamma_sweep(sweep_results, f"{GRAPH_DIR}/gamma_sweep.png")
 
 
 if __name__ == "__main__":
