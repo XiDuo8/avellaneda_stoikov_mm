@@ -23,7 +23,7 @@ book with λ(δ) = A·e^(−kδ) at a distance δ from the mid.
 
 The solution has two pieces:
 
-- **Reservation price** - an inventory-adjusted "fair" price the market market
+- **Reservation price** - an inventory-adjusted "fair" price the market maker
 quotes around, shifting below the mid-price when long and above it when short:
 
 ```
@@ -59,13 +59,15 @@ visualises all of the above.
 ## Results
 
 Config used below: `s0=100, mu=0.15, sigma=0.5, T=1.0, n_steps=1000, A=150.0,
-k=1.5`, AS strategy at `γ=2`, naive strategy spread-matched to the AS strategy's
-average width, 1000 Monte Carlo paths per strategy.
+k=1.5`, AS strategy at `γ=2`, 1000 Monte Carlo paths per strategy. The naive
+strategy quotes a fixed half-spread of 0.674, equal to the AS strategy's
+half-spread at `t = 0`, when it is at its widest.
 
 ### AS vs. naive: profit and risk
 
 | | AS (γ=2) | Naive |
 |---|---|---|
+| Mean terminal PnL | 60.4 | 90.4 |
 | Median terminal PnL | 61.9 | 77.6 |
 | Terminal PnL std. dev. | 89.1 | 446.5 |
 | Sharpe ratio | **0.68** | 0.20 |
@@ -73,36 +75,55 @@ average width, 1000 Monte Carlo paths per strategy.
 | Terminal inventory std. dev. | 3.52 | 10.13 |
 
 This matches the pattern in the original paper: the naive quoter earns a
-*higher* average profit, because it quotes tighter and gets filled more often
-with no regard for the risk it's accumulating. The AS strategy trades some of
+*higher* average profit, with no regard for the risk it's accumulating. Its
+fixed half-spread of 0.674 sits almost exactly at `1/k ≈ 0.667`, the distance
+that maximises expected spread capture under the fill model `λ(δ) = A·e^(−kδ)`.
+The AS strategy's half-spread narrows from 0.674 to 0.424 as `t → T`, so it
+fills more often but earns less on each fill, and it skews its quotes away
+from the profit-maximising distance whenever it holds inventory. It trades
 that mean profit away in exchange for a reduction in inventory variance and PnL
 variance. The net effect on risk-adjusted return (Sharpe ratio) favours the AS
 strategy over the naive strategy.
 
-![Terminal PnL distribution: AS vs Naive](assets/pnl_distribution.png)
+![Terminal PnL distribution: AS vs Naive](assets/graphs/pnl_distribution.png)
 
 The naive strategy's PnL distribution is visibly wider and long-tailed; the AS
 distribution is tighter around its mean, which is the direct consequence of
-actively managing inventory rather than letting it drift.
+actively managing inventory rather than letting it drift. Both histograms share
+the same bins and are scaled to densities so their heights are comparable. The
+x-axis is clipped to the central 98% of naive outcomes, which range from about
+−1,160 to +1,570; the AS strategy's central 98% spans only −170 to +280.
 
 ### A representative single run
 
-![Inventory and PnL over a representative run, AS vs Naive](assets/representative_run.png)
+![Inventory and PnL over a representative run, AS vs Naive](assets/graphs/representative_run.png)
 
-Picking the run closest to each strategy's median outcome makes the mechanism
-visible directly: the AS strategy's inventory mean-reverts toward zero
-throughout the session, while the naive strategy's inventory drifts and
-accumulates in one direction for extended stretches. The AS PnL path is
-correspondingly smoother, while the naive path swings by hundreds of dollars as
-its unmanaged inventory rides the price.
+Both strategies are shown on the same simulated price path: the run whose
+terminal PnL is closest to the median for both strategies at once, so neither
+is having an unusually good or bad day. This makes the mechanism visible
+directly. The AS strategy's inventory mean-reverts toward zero throughout the
+session and never leaves the range −3 to +3, while the naive strategy's
+inventory drifts from −6 to +14 and stays on one side for extended stretches.
+The AS PnL path is correspondingly smoother, climbing steadily to 63, while the
+naive path swings between −60 and +183 as its unmanaged inventory rides the
+price, before finishing at 78.
 
 ### The γ sweep: risk aversion trades off against expected profit
 
-![Gamma sweep: inventory variance vs mean PnL trade-off](assets/gamma_sweep.png)
+| γ | Mean inventory variance | Mean terminal PnL | Terminal PnL std. dev. | Sharpe ratio |
+|---|---|---|---|---|
+| 0.01 | 15.78 | 86.5 | 419.5 | 0.21 |
+| 0.5 | 5.04 | 67.8 | 154.7 | 0.44 |
+| 1 | 3.17 | 64.5 | 116.9 | 0.55 |
+| 2 | 1.94 | 60.4 | 89.1 | 0.68 |
+| 5 | 0.96 | 45.4 | 59.2 | 0.77 |
+
+![Gamma sweep: inventory variance vs mean PnL trade-off, and Sharpe ratio by gamma](assets/graphs/gamma_sweep.png)
 
 Sweeping γ from 0.01 (near risk-neutral) to 5 (highly risk-averse) traces out
-the trade-off directly, higher γ monotonically reduces both inventory variance
-and mean PnL.
+the trade-off directly: higher γ monotonically reduces both inventory variance
+and mean PnL. PnL variability falls faster than mean PnL does, so the Sharpe
+ratio rises across the whole sweep, from 0.21 to 0.77.
 
 ## Limitations
 This project simulates the AS model faithfully, but the model carries some
@@ -122,7 +143,7 @@ risk-widening term of the spread are scaled by `(T - t)`:
   the horizon closes, since the model's utility function assigns no cost to
   holding inventory at the exact instant `t = T`. In practice, this can produce a
   sharp, uncorrected inventory swing in the final steps of a run, visible in the
-  representative-run plots above. Guéant, Lehalle & Fernandez-Tapia (2013) address
+  representative-run plot above. Guéant, Lehalle & Fernandez-Tapia (2013) address
   this issue with an explicit terminal inventory penalty or hard liquidation
   constraint forcing `q → 0` as `t → T`.
 
@@ -139,14 +160,22 @@ seen in real intraday prices.
 - **No transaction costs or fees.** PnL is computed from fills alone; exchange
 fees, rebates, and slippage aren't modeled.
 
-- **parameters are illustrative.** `A`, `k`, `sigma`, and `mu` are set to values
+- **Parameters are illustrative.** `A`, `k`, `sigma`, and `mu` are set to values
 in a realistic range but weren't fit to a specific real asset's order-flow or
 price data.
 
 ## Usage
 
-Run the full AS vs. naive comparison, including the γ sweep, and display the
-plots:
+Create a virtual environment and install the dependencies:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Run the full AS vs. naive comparison, including the γ sweep. Each plot is
+displayed and also saved to `assets/graphs/`:
 
 ```bash
 python main.py
@@ -172,9 +201,10 @@ avellaneda_stoikov_mm/
 ├── requirements.txt
 ├── .pylintrc
 ├── assets/
-│   ├── pnl_distribution.png
-│   ├── representative_run.png
-│   └── gamma_sweep.png
+│   └── graphs/
+│       ├── pnl_distribution.png
+│       ├── representative_run.png
+│       └── gamma_sweep.png
 ├── src/
 │   ├── config.py
 │   ├── market.py
