@@ -3,6 +3,7 @@
 import math
 
 import numpy as np
+import pytest
 
 from src.config import SimulationConfig
 from src.market import fill_intensity, order_arrives, simulate_gbm
@@ -128,3 +129,20 @@ def test_order_arrives_returns_bool():
     result = order_arrives(delta=0.5, A=140.0, k=1.5, dt=0.001, rng=rng)
 
     assert isinstance(result, (bool, np.bool_))
+
+
+def test_simulate_gbm_price_moves_match_dollar_sigma():
+    """Simulated price changes must have the volatility the AS formulas use.
+
+    The quoting formulas read config.dollar_sigma, so the price path has to
+    move by that amount per root unit of time.
+    """
+    config = SimulationConfig(
+        s0=100.0, mu=0.0, sigma=0.005, T=1.0, n_steps=20000, A=140.0, k=1.5
+    )
+    dt = config.T / config.n_steps
+
+    prices = simulate_gbm(config, seed=0)
+    measured = np.diff(prices).std(ddof=1) / np.sqrt(dt)
+
+    assert measured == pytest.approx(config.dollar_sigma, rel=0.03)

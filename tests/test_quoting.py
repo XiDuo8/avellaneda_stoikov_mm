@@ -2,6 +2,7 @@
 
 import math
 
+from src.config import SimulationConfig
 from src.quoting import compute_quotes, optimal_spread, reservation_price
 
 
@@ -88,3 +89,32 @@ def test_compute_quotes_width_equals_optimal_spread(config):
     width = optimal_spread(t, gamma, config)
 
     assert math.isclose(ask - bid, width, rel_tol=1e-9)
+
+
+def test_reservation_price_uses_dollar_volatility():
+    """The inventory shift depends on volatility in price units.
+
+    Doubling the price level at the same relative volatility doubles the
+    dollar volatility, so the shift from the mid price is four times larger.
+    """
+    low = SimulationConfig(
+        s0=100.0, mu=0.0, sigma=0.002, T=1.0, n_steps=100, A=140.0, k=1.5
+    )
+    high = SimulationConfig(
+        s0=200.0, mu=0.0, sigma=0.002, T=1.0, n_steps=100, A=140.0, k=1.5
+    )
+
+    low_shift = 100.0 - reservation_price(100.0, 2.0, 0.5, 1.0, low)
+    high_shift = 200.0 - reservation_price(200.0, 2.0, 0.5, 1.0, high)
+
+    assert math.isclose(low_shift, 0.04, rel_tol=1e-9)
+    assert math.isclose(high_shift, 4 * low_shift, rel_tol=1e-9)
+
+
+def test_optimal_spread_uses_dollar_volatility(config):
+    """The risk term of the spread is gamma * dollar_sigma^2 * (T - t)."""
+    liquidity = (2 / 1.0) * math.log(1 + 1.0 / config.k)
+
+    width = optimal_spread(t=0.0, gamma=1.0, config=config)
+
+    assert math.isclose(width - liquidity, 0.2**2, rel_tol=1e-9)

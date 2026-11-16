@@ -11,7 +11,7 @@ def config() -> SimulationConfig:
     return SimulationConfig(
         s0=100.0,
         mu=0.1,
-        sigma=0.2,
+        sigma=0.002,
         T=1.0,
         n_steps=100,
         A=140.0,

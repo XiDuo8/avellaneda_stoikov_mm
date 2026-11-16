@@ -16,7 +16,8 @@ def reservation_price(
     Implements r(s, q, t) = s - q * gamma * sigma^2 * (T - t), the inventory
     adjusted fair price. The reservation price shifts below the mid price when
     the market maker is long inventory and above it when short, proportional to
-    the variance remaining over the trading horizon.
+    the variance remaining over the trading horizon. Here sigma is the dollar
+    volatility, config.dollar_sigma.
 
     Args:
         s: Current mid-price of the asset.
@@ -29,7 +30,7 @@ def reservation_price(
     Returns:
         The reservation price r(s, q, t).
     """
-    r = s - q * gamma * config.sigma ** 2 * (config.T - t)
+    r = s - q * gamma * config.dollar_sigma ** 2 * (config.T - t)
 
     return r
 
@@ -44,7 +45,8 @@ def optimal_spread(
     ln(1 + gamma / k), the total quoted spread width. The spread widens with
     more time remaining or higher volatility (greater inventory risk to be
     compensated for), and is shaped by risk aversion and the fill-decay rate k
-    from the order arrival model.
+    from the order arrival model. Here sigma is the dollar volatility,
+    config.dollar_sigma.
 
     Args:
         t: Current time.
@@ -54,7 +56,7 @@ def optimal_spread(
     Returns:
         The total optimal spread width (delta_a + delta_b).
     """
-    risk = gamma * config.sigma**2 * (config.T - t)
+    risk = gamma * config.dollar_sigma**2 * (config.T - t)
     liquidity = (2 / gamma) * np.log(1 + gamma / config.k)
     width = risk + liquidity
 
