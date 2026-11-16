@@ -1,54 +1,86 @@
-from collections import deque
+"""Replays a LOBSTER message stream and fills our own resting quotes."""
+
 from dataclasses import dataclass
 
-@dataclass
-class RestingOrder:
-    """One real resting order at a price level, as seen in LOBSTER message
-    stream. """
-    order_id: int
-    size: float
+LIMIT_ORDER = 1
+VISIBLE_EXECUTION = 4
+HIDDEN_EXECUTION = 5
+
+# Arrival index given to real orders whose submission is not in the message
+# file: orders already resting at the open, or submitted outside the visible
+# levels. They are treated as ahead of us in the queue, which can only delay
+# our fills.
+BEFORE_SESSION = -1
+
 
 @dataclass
 class SyntheticOrder:
-    """Our own resting order, tracked seperately from the real book."""
+    """Our own resting order, tracked separately from the real book.
+
+    Attributes:
+        side: "bid" or "ask".
+        price: Limit price in ticks.
+        size: Shares still unfilled.
+        placed_seq: Number of messages processed before the order was placed.
+            Real orders that arrive in a later message are behind it.
+    """
     side: str
-    price: float
+    price: int
     size: float
-    volume_ahead: float
-    placed_at: float
+    placed_seq: int
+
+
+@dataclass
+class Fill:
+    """A fill of one of our synthetic orders.
+
+    Attributes:
+        side: "bid" if we bought, "ask" if we sold.
+        price: Our limit price in ticks, which is the price we trade at.
+        size: Shares filled.
+    """
+    side: str
+    price: int
+    size: float
+
 
 class LOBReplayEngine:
-    """Reconstructs a LOBSTER order book's evolution and tracks fills against
-    synthetic resting orders under queue-position-aware logic.
+    """Replays LOBSTER messages and fills synthetic orders by price-time
+    priority.
+
+    The real order flow is replayed unchanged: our orders are assumed not to
+    affect it. A synthetic order fills when a real resting order with lower
+    priority than ours is executed, because the incoming order would have
+    reached ours first.
     """
 
     def __init__(self):
-        self._queues: dict[str, dict[float, deque]] = {"bid": {}, "ask": {}}
-        self._order_price: dict[int, float] = {}
+        self._arrival_seq: dict[int, int] = {}
+        self._n_processed = 0
         self._synthetic_orders: dict[str, SyntheticOrder | None] = {
             "bid": None,
             "ask": None,
         }
 
     def place_synthetic_order(
-        self, side: str, price: float, size: float, timestamp: float
+        self, side: str, price: int, size: float
     ) -> None:
-        """Places a synthetic resting order on the given side at price,
-        computing volume_ahead from the real queue's current depth.
+        """Places a synthetic resting order at the back of the queue.
+
+        Args:
+            side: "bid" or "ask".
+            price: Limit price in ticks.
+            size: Number of shares to quote.
         """
         assert self._synthetic_orders[side] is None, (
             f"Synthetic order already resting on {side}; cancel it first."
         )
 
-        queue = self._queues[side].get(price)
-        volume_ahead = sum(order.size for order in queue) if queue else 0.0
-
         self._synthetic_orders[side] = SyntheticOrder(
             side=side,
             price=price,
             size=size,
-            volume_ahead=volume_ahead,
-            placed_at=timestamp,
+            placed_seq=self._n_processed,
         )
 
     def cancel_synthetic_order(self, side: str) -> SyntheticOrder | None:
@@ -57,96 +89,57 @@ class LOBReplayEngine:
         self._synthetic_orders[side] = None
         return existing
 
+    def get_synthetic_order(self, side: str) -> SyntheticOrder | None:
+        """Returns the synthetic order resting on the given side, if any."""
+        return self._synthetic_orders[side]
 
-    def process_message_event(self, event):
-        """Processes one LOBSTER message row, updating real queues checking
-        whether a resting synthetic order fills.
+    def process_message_event(self, event) -> Fill | None:
+        """Processes one LOBSTER message and checks our orders for a fill.
 
-        Returns the fill amount if a synthetic order was filled by this event,
-        else None.
+        Args:
+            event: One message row with attributes event_type, order_id, size,
+                direction and price_ticks. For executions, direction is the
+                side of the resting order that was hit (1 = buy, -1 = sell).
+
+        Returns:
+            The Fill if this event filled one of our orders, else None.
         """
-        side = "bid" if event.direction == 1 else "ask"
+        seq = self._n_processed
+        self._n_processed += 1
 
-        if event.event_type == 1:
-            resting = RestingOrder(order_id=event.order_id, size=event.size)
-            self._queues[side].setdefault(event.price, deque()).append(resting)
-            self._order_price[event.order_id] = event.price
-
-        elif event.event_type in (2, 3):
-            self._handle_cancellation(side, event)
+        if event.event_type == LIMIT_ORDER:
+            self._arrival_seq[event.order_id] = seq
             return None
 
-        elif event.event_type in (4, 5):
-            return self._handle_execution(side, event)
+        if event.event_type not in (VISIBLE_EXECUTION, HIDDEN_EXECUTION):
+            return None
 
-        return None
+        side = "bid" if event.direction == 1 else "ask"
+        order = self._synthetic_orders[side]
 
-    def _handle_cancellation(self, side: str, event) -> None:
-        """Handles a partial (type 2) or full (type 3) cancellation."""
-        price = self._order_price.get(event.order_id)
-        if price is None:
-            return
+        if order is None or not self._has_priority(order, event):
+            return None
 
-        queue = self._queues[side].get(price)
-        if queue is None:
-            return
+        fill_size = min(order.size, event.size)
+        order.size -= fill_size
+        if order.size <= 0:
+            self._synthetic_orders[side] = None
 
-        ahead_of_cancelled = 0.0
-        target = None
-        for resting in queue:
-            if resting.order_id == event.order_id:
-                target = resting
-                break
-            ahead_of_cancelled += resting.size
+        return Fill(side=side, price=order.price, size=fill_size)
 
-        if target is None:
-            return
+    def _has_priority(self, order: SyntheticOrder, event) -> bool:
+        """Checks whether our order ranks ahead of the executed real order.
 
-        removed = target.size if event.event_type == 3 else min(event.size, target.size)
+        Priority is by price, then displayed before hidden, then by arrival.
+        """
+        sign = 1 if order.side == "bid" else -1
+        price_edge = sign * (order.price - event.price_ticks)
 
-        synthetic = self._synthetic_orders[side]
-        if synthetic is not None and synthetic.price == price:
-            if ahead_of_cancelled < synthetic.volume_ahead:
-                synthetic.volume_ahead = max(0.0, synthetic.volume_ahead - removed)
+        if price_edge != 0:
+            return price_edge > 0
 
-        target.size -= removed
-        if target.size <= 0:
-            queue.remove(target)
-            del self._order_price[event.order_id]
+        if event.event_type == HIDDEN_EXECUTION:
+            return True
 
-    def _handle_execution(self, side: str, event) -> float | None:
-        """Handles a visible (type 4) or hidden (type 5) execution."""
-        queue = self._queues[side].get(event.price, deque())
-        remaining = event.size
-        fill_amount = 0.0
-
-        synthetic = self._synthetic_orders[side]
-        synthetic_here = synthetic is not None and synthetic.price == event.price
-
-        if synthetic_here and synthetic.volume_ahead > 0:
-            ahead_consumed = min(remaining, synthetic.volume_ahead)
-            self._consume_from_front(queue, ahead_consumed)
-            synthetic.volume_ahead -= ahead_consumed
-            remaining -= ahead_consumed
-
-        if synthetic_here and synthetic.volume_ahead <= 0 and remaining > 0:
-            fill_amount = min(remaining, synthetic.size)
-            synthetic.size -= fill_amount
-            remaining -= fill_amount
-            if synthetic.size <= 0:
-                self._synthetic_orders[side] = None
-
-        if remaining > 0:
-            self._consume_from_front(queue, remaining)
-
-        return fill_amount if fill_amount > 0 else None
-
-    @staticmethod
-    def _consume_from_front(queue: deque, amount: float) -> None:
-        while amount > 0 and queue:
-            front = queue[0]
-            take = min(amount, front.size)
-            front.size -= take
-            amount -= take
-            if front.size <= 0:
-                queue.popleft()
+        arrival = self._arrival_seq.get(event.order_id, BEFORE_SESSION)
+        return arrival >= order.placed_seq
