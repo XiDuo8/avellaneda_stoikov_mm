@@ -1,15 +1,31 @@
 # avellaneda_stoikov_mm
-A Monte Carlo simulation comparing an Avellaneda-Stoikov (AS) inventory-aware
-market making strategy against a naive fixed-spread baseline, on a simulated
-geometric Brownian motion (GBM) price path with Poisson order-arrival dynamics.
+An implementation of the Avellaneda-Stoikov (AS) market making strategy, tested
+two ways: in a Monte Carlo simulation of the paper's own model, and in a
+backtest against one day of real NASDAQ order book data. Both compare it with
+a naive strategy that quotes a fixed spread around the mid-price.
 
 The AS strategy skews its quotes based on current inventory to actively manage
-risk; the naive strategy quotes a constant spread around the mid-price
-regardless of position. This project runs both strategies across a thousand
-simulated price paths and measures the resulting trade-off between
-profitability and inventory risk. It then replays both strategies against a
-real day of NASDAQ order book data, to see how the model holds up outside its
-own assumptions.
+risk; the naive strategy quotes a constant spread regardless of position. The
+simulation measures the trade-off between profitability and inventory risk
+across 1,000 simulated price paths. The backtest checks how the model holds up
+outside its own assumptions.
+
+## Key findings
+
+- **In simulation, AS behaves as the paper predicts.** It gives up some
+profit (mean terminal PnL 62.2 against 73.4) for much tighter inventory:
+terminal inventory std. dev. 3.5 against 10.1, and PnL std. dev. 5.2 against
+7.4.
+- **On a real day of AAPL order flow, AS loses money.** With volatility and
+fill rates estimated from the data, it finishes at −$12,710: it earns $23,569
+from the spread and loses $36,279 on the inventory it takes on.
+- **The model predicts the opposite.** Simulating the same strategy with the
+same parameters gives a median PnL of +$30,290, and the real result is below
+all 200 simulated runs. The gap is adverse selection: real orders that hit
+the quotes tend to arrive just before the price moves against them, which the
+model's random fills leave out.
+- **The naive strategy's +$202,690 is luck.** $167,223 of it came from an
+unplanned short position of up to 45,832 shares on a day AAPL fell.
 
 ## Background
 Market makers profit from the bid-ask spread, but every filled order changes
@@ -74,6 +90,10 @@ half-spread at `t = 0`, when it is at its widest.
 volatility in price units, so they use `sigma × s0 = 0.5`: the simulated price
 moves by about 0.5 over the run, and that is the `σ` in the reservation price
 and spread.
+
+In this section, "Sharpe ratio" means mean terminal PnL divided by its
+standard deviation across the 1,000 runs. It is not computed over time or
+annualised, so it is not comparable with a strategy's usual Sharpe ratio.
 
 ### AS vs. naive: profit and risk
 
@@ -262,8 +282,6 @@ day the strategies are tested on, and one day says little about other days.
 the AS strategy trades about 24% of the 2.85 million shares executed in the
 file. Real participants would have reacted to quotes that size.
 - **No latency.** Quotes are updated the instant the book changes.
-- **No fees or rebates.** Exchanges typically pay a rebate for providing
-liquidity, which would offset part of the AS strategy's loss.
 - **Partial view of the book.** The file covers five price levels and starts
 at the open, so the arrival time of some resting orders is unknown. They are
 assumed to be ahead of us in the queue, which can only delay our fills.
@@ -273,22 +291,16 @@ This project simulates the AS model faithfully, but the model carries some
 simplifications.
 
 - **End-of-horizon inventory risk.** Both the reservation-price skew and the
-risk-widening term of the spread are scaled by `(T - t)`:
-
-  ```
-  r(s, q, t) = s − q·γ·σ²·(T − t)
-  δ_a + δ_b  = γ·σ²·(T − t) + (2/γ)·ln(1 + γ/k)
-  ```
-
-  As `t → T`, both terms vanish - the reservation price collapses back to the raw
-  mid-price regardless of inventory, and the spread narrows to just its fixed
-  liquidity term. The strategy effectively stops managing inventory risk right as
-  the horizon closes, since the model's utility function assigns no cost to
-  holding inventory at the exact instant `t = T`. In practice, this can produce a
-  sharp, uncorrected inventory swing in the final steps of a run, visible in the
-  representative-run plot above. Guéant, Lehalle & Fernandez-Tapia (2013) address
-  this issue with an explicit terminal inventory penalty or hard liquidation
-  constraint forcing `q → 0` as `t → T`.
+risk-widening term of the spread (see Background) are scaled by `(T − t)`. As
+`t → T`, both terms vanish - the reservation price collapses back to the raw
+mid-price regardless of inventory, and the spread narrows to just its fixed
+liquidity term. The strategy effectively stops managing inventory risk right as
+the horizon closes, since the model's utility function assigns no cost to
+holding inventory at the exact instant `t = T`. The backtest shows the result:
+the AS position stays within 2,241 shares until 15:30, then swings as far as
+4,223 shares in the last half hour. Guéant, Lehalle & Fernandez-Tapia (2013)
+address this issue with an explicit terminal inventory penalty or hard
+liquidation constraint forcing `q → 0` as `t → T`.
 
 - **Simulated order flow.** Fills are generated from a Poisson process with
 intensity `λ(δ) = A·e^(−kδ)`, as in the original paper, rather than from actual
@@ -302,8 +314,10 @@ and adverse selection turns out to decide the result.
 seen in real intraday prices. The AS formulas assume a constant volatility in
 price units, which is matched to the GBM volatility at the initial price.
 
-- **No transaction costs or fees.** PnL is computed from fills alone; exchange
-fees, rebates, and slippage aren't modeled.
+- **No transaction costs or fees.** Neither the simulation nor the backtest
+includes exchange fees, rebates, or slippage. Exchanges typically pay a rebate
+for providing liquidity, which would offset part of the AS strategy's backtest
+loss.
 
 - **Simulation parameters are illustrative.** In the Monte Carlo simulation,
 `A`, `k`, `sigma`, and `mu` are set to values in a realistic range but weren't
@@ -391,7 +405,3 @@ Guéant, O., Lehalle, C.-A., & Fernandez-Tapia, J. (2013). Dealing with the
 inventory risk: A solution to the market making problem. *Mathematics and
 Financial Economics*, *7*(4), 477–507.
 https://doi.org/10.1007/s11579-012-0087-0
-
-Harper, D. (2025, October 14). Monte Carlo Simulation With Geometric Brownian
-Motion Explained. Investopedia.
-https://www.investopedia.com/articles/07/montecarlo.asp
